@@ -2024,11 +2024,16 @@
             }
         });
 
-        // Solicitar Árbol Modal Functions
+        // Solicitar Árbol Modal Functions & Wizard Logic
+        let solicitarCurrentStep = 1;
+        const solicitarTotalSteps = 3;
+
         function openSolicitarModal() {
             const modal = document.getElementById('solicitarModal');
             if (modal) {
                 modal.style.display = 'flex';
+                solicitarCurrentStep = 1;
+                solicitarUpdateStepView();
             }
         }
 
@@ -2038,6 +2043,97 @@
             if (modal) {
                 modal.style.display = 'none';
             }
+        }
+
+        function solicitarUpdateStepView() {
+            // Hide all steps
+            for (let i = 1; i <= solicitarTotalSteps; i++) {
+                const stepEl = document.getElementById('solicitarStep' + i);
+                if (stepEl) {
+                    stepEl.style.display = 'none';
+                    stepEl.classList.remove('active');
+                }
+            }
+            // Show active step
+            const activeStepEl = document.getElementById('solicitarStep' + solicitarCurrentStep);
+            if (activeStepEl) {
+                activeStepEl.style.display = 'block';
+                activeStepEl.classList.add('active');
+            }
+
+            // Update Progress Bar
+            const bar = document.getElementById('solicitarFormProgressBar');
+            if (bar) {
+                const percentage = (solicitarCurrentStep / solicitarTotalSteps) * 100;
+                bar.style.width = percentage + '%';
+            }
+
+            // Buttons configuration
+            const btnPrev = document.getElementById('solicitarBtnPrev');
+            const btnNext = document.getElementById('solicitarBtnNext');
+            const btnSubmit = document.getElementById('solicitarBtnSubmit');
+
+            if (solicitarCurrentStep === 1) {
+                btnPrev.textContent = 'Cancelar';
+                btnPrev.onclick = (e) => closeSolicitarModal(e);
+            } else {
+                btnPrev.textContent = 'Atrás';
+                btnPrev.onclick = () => solicitarPrevStep();
+            }
+
+            if (solicitarCurrentStep === solicitarTotalSteps) {
+                btnNext.style.display = 'none';
+                btnSubmit.style.display = 'block';
+            } else {
+                btnNext.style.display = 'block';
+                btnSubmit.style.display = 'none';
+            }
+        }
+
+        function solicitarNextStep() {
+            // Validation before going to Step 2
+            if (solicitarCurrentStep === 1) {
+                const nombreVal = document.getElementById('solicitar_nombre').value.trim();
+                if (!nombreVal) {
+                    alert('⚠️ El nombre del árbol es obligatorio para continuar.');
+                    return;
+                }
+            }
+
+            // Validation before going to Step 3
+            if (solicitarCurrentStep === 2) {
+                const bosqueSelect = document.getElementById('solicitar_bosque_id');
+                if (!bosqueSelect.value) {
+                    alert('⚠️ Debes seleccionar un bosque de destino para continuar.');
+                    return;
+                }
+            }
+
+            if (solicitarCurrentStep < solicitarTotalSteps) {
+                solicitarCurrentStep++;
+                solicitarUpdateStepView();
+            }
+        }
+
+        function solicitarPrevStep() {
+            if (solicitarCurrentStep > 1) {
+                solicitarCurrentStep--;
+                solicitarUpdateStepView();
+            }
+        }
+
+        function solicitarSubmitForm() {
+            const locacionVal = document.getElementById('solicitar_locacion').value.trim();
+            if (!locacionVal) {
+                alert('⚠️ Debes obtener la ubicación GPS antes de enviar la solicitud.');
+                return;
+            }
+
+            const btnSubmit = document.getElementById('solicitarBtnSubmit');
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = 'Enviando...';
+
+            document.getElementById('solicitar-arbol-form').submit();
         }
 
         // HTML5 Geolocation API Handler
@@ -2119,7 +2215,7 @@
         }
     </script>
 
-    <!-- Modal Solicitar Titularidad de un Árbol -->
+    <!-- Modal Solicitar Titularidad de un Árbol (Wizard por Pasos) -->
     <div id="solicitarModal" class="modal-overlay" onclick="closeSolicitarModal(event)">
         <div class="modal-container" onclick="event.stopPropagation()">
             
@@ -2134,105 +2230,134 @@
                 </button>
             </div>
 
+            <!-- Progress bar -->
+            <div class="modal-progress-container">
+                <div id="solicitarFormProgressBar" class="modal-progress-bar" style="width: 33.33%;"></div>
+            </div>
+
             <!-- Form -->
-            <form action="{{ route('arbol.solicitar') }}" method="POST" id="solicitar-arbol-form" style="display: flex; flex-direction: column; gap: 16px; padding: 20px; overflow-y: auto; max-height: calc(85vh - 70px);">
+            <form action="{{ route('arbol.solicitar') }}" method="POST" id="solicitar-arbol-form" style="display: contents;">
                 @csrf
                 
-                <!-- Nombre del Árbol -->
-                <div class="form-group">
-                    <label class="form-label" for="solicitar_nombre">Nombre del Árbol (Único)</label>
-                    <div class="input-wrapper">
-                        <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; color: var(--text-tertiary);">
-                            <path d="M12 2v20M17 5H7M19 9H5M21 13H3M12 17h6M12 17H6"></path>
-                        </svg>
-                        <input class="form-control" type="text" id="solicitar_nombre" name="nombre" placeholder="Ej. Roble Centenario" required style="padding-left: 42px;">
+                <div class="modal-form-body" style="padding: 20px; overflow-y: auto; max-height: calc(85vh - 120px); display: flex; flex-direction: column; gap: 16px;">
+                    
+                    <!-- PASO 1: Identificación 🌳 -->
+                    <div class="modal-step active" id="solicitarStep1">
+                        <h3 class="step-title">Identificación del Árbol</h3>
+                        <p class="step-subtitle">Ingresa el nombre distintivo y especie del ejemplar.</p>
+                        
+                        <!-- Nombre del Árbol -->
+                        <div class="form-group" style="margin-top: 12px;">
+                            <label class="form-label" for="solicitar_nombre">Nombre del Árbol (Único)</label>
+                            <div class="input-wrapper">
+                                <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; color: var(--text-tertiary);">
+                                    <path d="M12 2v20M17 5H7M19 9H5M21 13H3M12 17h6M12 17H6"></path>
+                                </svg>
+                                <input class="form-control" type="text" id="solicitar_nombre" name="nombre" placeholder="Ej. Roble Centenario" required style="padding-left: 42px;">
+                            </div>
+                        </div>
+
+                        <!-- Especie -->
+                        <div class="form-group" style="margin-top: 12px;">
+                            <label class="form-label" for="solicitar_especie">Especie</label>
+                            <div class="input-wrapper">
+                                <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; color: var(--text-tertiary);">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                </svg>
+                                <input class="form-control" type="text" id="solicitar_especie" name="especie" placeholder="Ej. Quercus robur" style="padding-left: 42px;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PASO 2: Características & Destino 📏 -->
+                    <div class="modal-step" id="solicitarStep2" style="display: none;">
+                        <h3 class="step-title">Características y Bosque</h3>
+                        <p class="step-subtitle">Define las proporciones y el bosque en el que residirá el ejemplar.</p>
+
+                        <!-- Tamaño -->
+                        <div class="form-group" style="margin-top: 12px;">
+                            <label class="form-label" for="solicitar_tamano">Tamaño aproximado (Altura en metros)</label>
+                            <div class="input-wrapper">
+                                <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; color: var(--text-tertiary);">
+                                    <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+                                    <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+                                </svg>
+                                <input class="form-control" type="number" step="0.1" min="0.1" id="solicitar_tamano" name="tamano" placeholder="Ej. 12.5" required style="padding-left: 42px;">
+                            </div>
+                            <span style="font-size: 10px; color: var(--text-secondary); margin-top: 4px; display: block;">Ingresa la altura aproximada del árbol en metros (solo números).</span>
+                        </div>
+
+                        <!-- Bosque -->
+                        <div class="form-group" style="margin-top: 12px;">
+                            <label class="form-label" for="solicitar_bosque_id">Bosque de Destino</label>
+                            <div class="input-wrapper">
+                                <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; color: var(--text-tertiary); z-index: 5;">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                </svg>
+                                <select class="form-control" id="solicitar_bosque_id" name="bosque_id" required style="padding-left: 42px;">
+                                    <option value="" disabled selected>Selecciona un bosque...</option>
+                                    @foreach($bosques as $b)
+                                        <option value="{{ $b->Id }}">{{ $b->Nombre }} ({{ $b->Ubicacion }})</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PASO 3: Localización & Plantado 📍 -->
+                    <div class="modal-step" id="solicitarStep3" style="display: none;">
+                        <h3 class="step-title">Ubicación y Plantado</h3>
+                        <p class="step-subtitle">Obtén la ubicación satelital GPS y define la fecha del plantado.</p>
+
+                        <!-- Locación (GPS) -->
+                        <div class="form-group" style="margin-top: 12px;">
+                            <label class="form-label" for="solicitar_locacion">Ubicación GPS</label>
+                            <div class="input-wrapper">
+                                <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; color: var(--text-tertiary); z-index: 5;">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                    <circle cx="12" cy="10" r="3"></circle>
+                                </svg>
+                                <input class="form-control" type="text" id="solicitar_locacion" name="locacion" placeholder="Haz clic en obtener ubicación ➡️" required readonly style="padding-left: 42px; padding-right: 90px; background-color: var(--bg-light); cursor: pointer;" onclick="getGPSLocation()">
+                                <button type="button" onclick="getGPSLocation()" id="gps-button" style="position: absolute; right: 6px; top: 6px; bottom: 6px; border: none; background: var(--google-blue); color: white; border-radius: var(--border-radius-sm); padding: 0 12px; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: background-color 0.2s; z-index: 10;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                                    </svg>
+                                    <span>GPS</span>
+                                </button>
+                            </div>
+                            <span id="gps-status" style="font-size: 10px; color: var(--text-secondary); margin-top: 4px; display: block; min-height: 14px;"></span>
+                        </div>
+
+                        <!-- Fecha Plantado -->
+                        <div class="form-group" style="margin-top: 12px;">
+                            <label class="form-label" for="solicitar_fecha_plantado">Fecha de Plantado</label>
+                            <div class="input-wrapper">
+                                <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; color: var(--text-tertiary);">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                                <input class="form-control" type="date" id="solicitar_fecha_plantado" name="fecha_plantado" value="{{ date('Y-m-d') }}" style="padding-left: 42px;">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Especie -->
-                <div class="form-group">
-                    <label class="form-label" for="solicitar_especie">Especie</label>
-                    <div class="input-wrapper">
-                        <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; color: var(--text-tertiary);">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                        </svg>
-                        <input class="form-control" type="text" id="solicitar_especie" name="especie" placeholder="Ej. Quercus robur" style="padding-left: 42px;">
-                    </div>
+                <!-- Bottom navigation actions -->
+                <div class="modal-form-footer" style="padding: 16px 20px; border-top: 1px solid var(--border-card); display: flex; align-items: center; justify-content: space-between; background-color: var(--bg-surface); gap: 12px;">
+                    <button type="button" class="modal-btn-cancel" id="solicitarBtnPrev" onclick="closeSolicitarModal()" style="flex: 1;">Cancelar</button>
+                    <button type="button" class="modal-btn-next" id="solicitarBtnNext" onclick="solicitarNextStep()" style="flex: 1;">Siguiente</button>
+                    <button type="button" class="modal-btn-submit" id="solicitarBtnSubmit" onclick="solicitarSubmitForm()" style="flex: 1; display: none;">Enviar Solicitud</button>
                 </div>
-
-                <!-- Tamaño -->
-                <div class="form-group">
-                    <label class="form-label" for="solicitar_tamano">Tamaño aproximado</label>
-                    <div class="input-wrapper">
-                        <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; color: var(--text-tertiary);">
-                            <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
-                            <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
-                        </svg>
-                        <input class="form-control" type="text" id="solicitar_tamano" name="tamano" placeholder="Ej. 12 metros, mediano" style="padding-left: 42px;">
-                    </div>
-                </div>
-
-                <!-- Locación (GPS) -->
-                <div class="form-group">
-                    <label class="form-label" for="solicitar_locacion">Ubicación GPS</label>
-                    <div class="input-wrapper">
-                        <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; color: var(--text-tertiary); z-index: 5;">
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                            <circle cx="12" cy="10" r="3"></circle>
-                        </svg>
-                        <input class="form-control" type="text" id="solicitar_locacion" name="locacion" placeholder="Haz clic en obtener ubicación ➡️" required readonly style="padding-left: 42px; padding-right: 90px; background-color: var(--bg-light); cursor: pointer;" onclick="getGPSLocation()">
-                        <button type="button" onclick="getGPSLocation()" id="gps-button" style="position: absolute; right: 6px; top: 6px; bottom: 6px; border: none; background: var(--google-blue); color: white; border-radius: var(--border-radius-sm); padding: 0 12px; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: background-color 0.2s; z-index: 10;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <circle cx="12" cy="12" r="3"></circle>
-                                <line x1="12" y1="1" x2="12" y2="3"></line>
-                                <line x1="12" y1="21" x2="12" y2="23"></line>
-                                <line x1="1" y1="12" x2="3" y2="12"></line>
-                                <line x1="21" y1="12" x2="23" y2="12"></line>
-                            </svg>
-                            <span>GPS</span>
-                        </button>
-                    </div>
-                    <span id="gps-status" style="font-size: 10px; color: var(--text-secondary); margin-top: 4px; display: block; min-height: 14px;"></span>
-                </div>
-
-                <!-- Fecha Plantado -->
-                <div class="form-group">
-                    <label class="form-label" for="solicitar_fecha_plantado">Fecha de Plantado</label>
-                    <div class="input-wrapper">
-                        <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; color: var(--text-tertiary);">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                        </svg>
-                        <input class="form-control" type="date" id="solicitar_fecha_plantado" name="fecha_plantado" value="{{ date('Y-m-d') }}" style="padding-left: 42px;">
-                    </div>
-                </div>
-
-                <!-- Bosque -->
-                <div class="form-group" style="margin-bottom: 20px;">
-                    <label class="form-label" for="solicitar_bosque_id">Bosque de Destino</label>
-                    <div class="input-wrapper">
-                        <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; color: var(--text-tertiary);">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="9" cy="7" r="4"></circle>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                        </svg>
-                        <select class="form-control" id="solicitar_bosque_id" name="bosque_id" required style="padding-left: 42px;">
-                            <option value="" disabled selected>Selecciona un bosque...</option>
-                            @foreach($bosques as $b)
-                                <option value="{{ $b->Id }}">{{ $b->Nombre }} ({{ $b->Ubicacion }})</option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Submit -->
-                <button type="submit" class="btn-submit" id="btn-submit-solicitar" style="margin-top: 8px; margin-bottom: 20px;">
-                    <span>Enviar Solicitud</span>
-                </button>
             </form>
         </div>
     </div>

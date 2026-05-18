@@ -427,11 +427,20 @@ class AuthController extends Controller
             ])->withInput();
         }
 
+        // Sanitize the 'tamano' input to make sure it's a decimal-friendly float
+        $tamano = null;
+        if ($request->filled('tamano')) {
+            // Extract the first numeric sequence (integer or decimal)
+            if (preg_match('/(\d+(?:\.\d+)?)/', $request->input('tamano'), $matches)) {
+                $tamano = floatval($matches[1]);
+            }
+        }
+
         // 1. Create the Arbol with status 'solicitando'
         $arbol = \App\Models\Arbol::create([
             'Nombre' => $request->nombre,
             'Especie' => $request->especie,
-            'Tamano' => $request->tamano,
+            'Tamano' => $tamano,
             'Locacion' => $request->locacion,
             'FechaPlantado' => $request->fecha_plantado,
             'Bosque_Id' => $request->bosque_id,
