@@ -201,7 +201,7 @@ class AuthController extends Controller
         $reportes = $reportes->sortByDesc('Creado_El');
 
         // Fetch user's own titulares for report creation dropdown in modal
-        $titulares = $user->titulares()->with(['arbol.bosque'])->get();
+        $titulares = $user->titulares()->with(['arbol.bosque', 'reporteMasReciente'])->get();
 
         return view('arbol.profile', compact('user', 'arbol', 'reportes', 'titulares'));
     }
