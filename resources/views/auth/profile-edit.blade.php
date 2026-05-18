@@ -437,6 +437,77 @@
             text-overflow: ellipsis;
             font-weight: 500;
         }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .modal-container {
+            width: 100%;
+            max-height: 85%;
+            background-color: var(--bg-surface);
+            border-top-left-radius: var(--border-radius-lg);
+            border-top-right-radius: var(--border-radius-lg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.25);
+            animation: slide-up 0.3s cubic-bezier(0.32, 0.94, 0.6, 1);
+        }
+
+        @keyframes slide-up {
+            from {
+                transform: translateY(100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        .modal-form-header {
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--border-card);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-form-title {
+            font-family: 'Google Sans', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .modal-form-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+
+        .modal-form-close:hover {
+            background-color: var(--bg-light);
+            color: var(--text-primary);
+        }
     </style>
 </head>
 
@@ -466,14 +537,17 @@
             </div>
 
             <!-- Mis Árboles Navigation Carousel -->
+            @php
+                $activeCount = $titulares->filter(fn($t) => $t->arbol && $t->arbol->estado !== 'solicitando')->count();
+            @endphp
             <div style="padding: 0 0 16px 0; border-bottom: 1px solid var(--border-card); margin-bottom: 8px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
                     <span style="font-size: 11px; font-weight: 800; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.8px;">Mis Árboles Custodiados</span>
-                    <span style="font-size: 11px; color: var(--google-blue); font-weight: 700;">{{ $titulares->count() }} {{ $titulares->count() == 1 ? 'Árbol' : 'Árboles' }}</span>
+                    <span style="font-size: 11px; color: var(--google-blue); font-weight: 700;">{{ $activeCount }} {{ $activeCount == 1 ? 'Árbol' : 'Árboles' }}</span>
                 </div>
                 <div class="user-trees-carousel">
                     @foreach($titulares as $t)
-                        @if($t->arbol)
+                        @if($t->arbol && $t->arbol->estado !== 'solicitando')
                             @php
                                 $fotoUrl = null;
                                 if ($t->reporteMasReciente && $t->reporteMasReciente->Foto_Evidencia) {
@@ -501,6 +575,22 @@
                             </div>
                         @endif
                     @endforeach
+                    
+                    <!-- Solicitar Árbol Card -->
+                    <div class="user-tree-card" onclick="openSolicitarModal()" style="border-style: dashed; border-color: var(--google-yellow); background-color: var(--google-yellow-bg); opacity: 0.95;">
+                        <div class="user-tree-img-wrapper" style="background: transparent; border-bottom: 1px dashed rgba(249, 171, 0, 0.3);">
+                            <div class="user-tree-placeholder" style="color: var(--google-yellow); background: transparent;">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="user-tree-info">
+                            <span class="user-tree-name" style="color: #b06000;">Solicitar Árbol</span>
+                            <span class="user-tree-details" style="color: #c08020;">Nueva titularidad</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -753,7 +843,129 @@
 
             return true;
         }
+
+        // Solicitar Árbol Modal Functions
+        function openSolicitarModal() {
+            const modal = document.getElementById('solicitarModal');
+            if (modal) {
+                modal.style.display = 'flex';
+            }
+        }
+
+        function closeSolicitarModal(event) {
+            if (event) event.stopPropagation();
+            const modal = document.getElementById('solicitarModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
     </script>
+
+    <!-- Modal Solicitar Titularidad de un Árbol -->
+    <div id="solicitarModal" class="modal-overlay" onclick="closeSolicitarModal(event)">
+        <div class="modal-container" onclick="event.stopPropagation()">
+            
+            <!-- Header -->
+            <div class="modal-form-header">
+                <h2 class="modal-form-title">Solicitar Árbol Nuevo</h2>
+                <button class="modal-form-close" onclick="closeSolicitarModal(event)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Form -->
+            <form action="{{ route('arbol.solicitar') }}" method="POST" id="solicitar-arbol-form" style="display: flex; flex-direction: column; gap: 16px; padding: 20px; overflow-y: auto; max-height: calc(85vh - 70px);">
+                @csrf
+                
+                <!-- Nombre del Árbol -->
+                <div class="form-group">
+                    <label class="form-label" for="solicitar_nombre">Nombre del Árbol (Único)</label>
+                    <div class="input-wrapper">
+                        <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; color: var(--text-tertiary);">
+                            <path d="M12 2v20M17 5H7M19 9H5M21 13H3M12 17h6M12 17H6"></path>
+                        </svg>
+                        <input class="form-control" type="text" id="solicitar_nombre" name="nombre" placeholder="Ej. Roble Centenario" required style="padding-left: 42px;">
+                    </div>
+                </div>
+
+                <!-- Especie -->
+                <div class="form-group">
+                    <label class="form-label" for="solicitar_especie">Especie</label>
+                    <div class="input-wrapper">
+                        <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; color: var(--text-tertiary);">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                        <input class="form-control" type="text" id="solicitar_especie" name="especie" placeholder="Ej. Quercus robur" style="padding-left: 42px;">
+                    </div>
+                </div>
+
+                <!-- Tamaño -->
+                <div class="form-group">
+                    <label class="form-label" for="solicitar_tamano">Tamaño aproximado</label>
+                    <div class="input-wrapper">
+                        <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; color: var(--text-tertiary);">
+                            <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+                            <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+                        </svg>
+                        <input class="form-control" type="text" id="solicitar_tamano" name="tamano" placeholder="Ej. 12 metros, mediano" style="padding-left: 42px;">
+                    </div>
+                </div>
+
+                <!-- Locación -->
+                <div class="form-group">
+                    <label class="form-label" for="solicitar_locacion">Locación / Coordenadas</label>
+                    <div class="input-wrapper">
+                        <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; color: var(--text-tertiary);">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                            <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        <input class="form-control" type="text" id="solicitar_locacion" name="locacion" placeholder="Ej. Sección Norte, Fila 4" style="padding-left: 42px;">
+                    </div>
+                </div>
+
+                <!-- Fecha Plantado -->
+                <div class="form-group">
+                    <label class="form-label" for="solicitar_fecha_plantado">Fecha de Plantado</label>
+                    <div class="input-wrapper">
+                        <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; color: var(--text-tertiary);">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        <input class="form-control" type="date" id="solicitar_fecha_plantado" name="fecha_plantado" value="{{ date('Y-m-d') }}" style="padding-left: 42px;">
+                    </div>
+                </div>
+
+                <!-- Bosque -->
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label class="form-label" for="solicitar_bosque_id">Bosque de Destino</label>
+                    <div class="input-wrapper">
+                        <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; color: var(--text-tertiary);">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        <select class="form-control" id="solicitar_bosque_id" name="bosque_id" required style="padding-left: 42px;">
+                            <option value="" disabled selected>Selecciona un bosque...</option>
+                            @foreach($bosques as $b)
+                                <option value="{{ $b->Id }}">{{ $b->Nombre }} ({{ $b->Ubicacion }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <button type="submit" class="btn-submit" id="btn-submit-solicitar" style="margin-top: 8px; margin-bottom: 20px;">
+                    <span>Enviar Solicitud</span>
+                </button>
+            </form>
+        </div>
+    </div>
 </body>
 
 </html>

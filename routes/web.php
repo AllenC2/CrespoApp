@@ -20,4 +20,5 @@ Route::middleware('auth')->group(function () {
     Route::post('/perfil/avatar', [AuthController::class, 'updateAvatar'])->name('perfil.update-avatar');
     Route::get('/perfil/contrasena', [AuthController::class, 'editPassword'])->name('password.edit');
     Route::post('/perfil/contrasena', [AuthController::class, 'updatePassword'])->name('password.update');
+    Route::post('/arbol/solicitar', [AuthController::class, 'solicitarArbol'])->name('arbol.solicitar');
 });

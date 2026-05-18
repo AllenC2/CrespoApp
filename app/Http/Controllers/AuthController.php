@@ -202,8 +202,9 @@ class AuthController extends Controller
 
         // Fetch user's own titulares for report creation dropdown in modal
         $titulares = $user->titulares()->with(['arbol.bosque', 'reporteMasReciente'])->get();
+        $bosques = \App\Models\Bosque::all();
 
-        return view('arbol.profile', compact('user', 'arbol', 'reportes', 'titulares'));
+        return view('arbol.profile', compact('user', 'arbol', 'reportes', 'titulares', 'bosques'));
     }
 
     /**
@@ -223,8 +224,9 @@ class AuthController extends Controller
 
         // Fetch user's own titulares
         $titulares = $user->titulares()->with(['arbol.bosque', 'reporteMasReciente'])->get();
-
-        return view('auth.profile-edit', compact('user', 'titulares'));
+        $bosques = \App\Models\Bosque::all();
+ 
+        return view('auth.profile-edit', compact('user', 'titulares', 'bosques'));
     }
 
     /**
@@ -382,5 +384,69 @@ class AuthController extends Controller
             'message' => '¡Foto de perfil actualizada exitosamente!',
             'avatar_url' => 'data:image/jpeg;base64,' . base64_encode($fotoBinary)
         ]);
+    }
+
+    /**
+     * Store a new tree request (solicitar titularidad de un nuevo árbol).
+     */
+    public function solicitarArbol(Request $request)
+    {
+        $user = Auth::user();
+        
+        // Safety check: ensure user is Titular
+        if (!$user || $user->Rol !== 'Titular') {
+            return redirect()->route('login')->withErrors([
+                'email' => 'Acceso denegado. Este portal es exclusivo para usuarios de tipo Titular.',
+            ]);
+        }
+
+        $request->validate([
+            'nombre' => 'required|string|max:255',
+            'especie' => 'nullable|string|max:255',
+            'tamano' => 'nullable|string|max:255',
+            'locacion' => 'nullable|string|max:255',
+            'fecha_plantado' => 'nullable|date',
+            'bosque_id' => 'required|integer|exists:bosques,Id',
+        ], [
+            'nombre.required' => 'El nombre del árbol es obligatorio.',
+            'bosque_id.required' => 'El bosque es obligatorio.',
+            'bosque_id.exists' => 'El bosque seleccionado no es válido.',
+        ]);
+
+        // Check if there is an existing tree with the same name that has a vigente/active title
+        // "Los arboles con titularidad vigente no pueden ser solicitados."
+        $existingVigente = \App\Models\Arbol::where('Nombre', $request->nombre)
+            ->whereHas('titulares', function($query) {
+                $query->where('estado_vigencia', 'vigente');
+            })
+            ->first();
+
+        if ($existingVigente) {
+            return back()->withErrors([
+                'nombre' => 'El árbol "' . $request->nombre . '" ya cuenta con una titularidad vigente y no puede ser solicitado.',
+            ])->withInput();
+        }
+
+        // 1. Create the Arbol with status 'solicitando'
+        $arbol = \App\Models\Arbol::create([
+            'Nombre' => $request->nombre,
+            'Especie' => $request->especie,
+            'Tamano' => $request->tamano,
+            'Locacion' => $request->locacion,
+            'FechaPlantado' => $request->fecha_plantado,
+            'Bosque_Id' => $request->bosque_id,
+            'estado' => 'solicitando',
+        ]);
+
+        // 2. Create the Titular with status 'solicitando'
+        \App\Models\Titular::create([
+            'FechaInicio' => now()->toDateString(),
+            'FirmadaPor' => 'Solicitud en Línea',
+            'Arbol_Id' => $arbol->Id,
+            'Usuario_Id' => $user->Id,
+            'estado_vigencia' => 'solicitando',
+        ]);
+
+        return back()->with('success', '¡Solicitud de titularidad enviada con éxito! Tu solicitud está siendo procesada.');
     }
 }

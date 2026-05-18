@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-#[Fillable(['Nombre', 'Tamano', 'Locacion', 'Especie', 'FechaPlantado', 'Bosque_Id'])]
+#[Fillable(['Nombre', 'Tamano', 'Locacion', 'Especie', 'FechaPlantado', 'Bosque_Id', 'estado'])]
 class Arbol extends Model
 {
     use HasFactory;
