@@ -508,6 +508,42 @@
             background-color: var(--bg-light);
             color: var(--text-primary);
         }
+
+        /* Input & Form Premium Styles */
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+
+        .form-control {
+            width: 100%;
+            height: 48px;
+            padding: 0 16px 0 42px;
+            border-radius: var(--border-radius-sm);
+            border: 1.5px solid var(--border-light);
+            background-color: var(--bg-surface);
+            font-size: 14px;
+            color: var(--text-primary);
+            outline: none;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: inherit;
+        }
+
+        .form-control:focus {
+            border-color: var(--google-blue);
+            box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15);
+        }
+
+        select.form-control {
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235f6368' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            background-size: 16px;
+        }
     </style>
 </head>
 
@@ -859,6 +895,84 @@
                 modal.style.display = 'none';
             }
         }
+
+        // HTML5 Geolocation API Handler
+        function getGPSLocation() {
+            const statusEl = document.getElementById('gps-status');
+            const inputEl = document.getElementById('solicitar_locacion');
+            const buttonEl = document.getElementById('gps-button');
+
+            if (!statusEl || !inputEl || !buttonEl) return;
+
+            if (!navigator.geolocation) {
+                statusEl.textContent = '❌ La geolocalización no es soportada por tu navegador.';
+                statusEl.style.color = '#d93025';
+                return;
+            }
+
+            statusEl.textContent = '⌛ Obteniendo coordenadas de satélite...';
+            statusEl.style.color = 'var(--google-blue)';
+            buttonEl.disabled = true;
+            buttonEl.style.backgroundColor = '#dadce0';
+            buttonEl.style.color = '#70757a';
+
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const lat = position.coords.latitude.toFixed(6);
+                    const lng = position.coords.longitude.toFixed(6);
+                    inputEl.value = `Lat: ${lat}, Lng: ${lng}`;
+                    statusEl.textContent = '✅ Ubicación GPS obtenida exitosamente.';
+                    statusEl.style.color = 'var(--google-green)';
+                    buttonEl.disabled = false;
+                    buttonEl.style.backgroundColor = 'var(--google-green)';
+                    buttonEl.style.color = 'white';
+                    buttonEl.innerHTML = `
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        <span>Listo</span>
+                    `;
+                },
+                function(error) {
+                    console.error(error);
+                    statusEl.style.color = '#d93025';
+                    buttonEl.disabled = false;
+                    buttonEl.style.backgroundColor = 'var(--google-blue)';
+                    buttonEl.style.color = 'white';
+                    buttonEl.innerHTML = `
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                            <line x1="1" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="12" x2="23" y2="12"></line>
+                        </svg>
+                        <span>GPS</span>
+                    `;
+
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            statusEl.textContent = '❌ Permiso denegado por el usuario para acceder al GPS.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            statusEl.textContent = '❌ La señal GPS no está disponible en este momento.';
+                            break;
+                        case error.TIMEOUT:
+                            statusEl.textContent = '❌ Tiempo de espera agotado al consultar la ubicación GPS.';
+                            break;
+                        default:
+                            statusEl.textContent = '❌ Ocurrió un error al obtener la ubicación GPS.';
+                            break;
+                    }
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 8000,
+                    maximumAge: 0
+                }
+            );
+        }
     </script>
 
     <!-- Modal Solicitar Titularidad de un Árbol -->
@@ -914,16 +1028,28 @@
                     </div>
                 </div>
 
-                <!-- Locación -->
+                <!-- Locación (GPS) -->
                 <div class="form-group">
-                    <label class="form-label" for="solicitar_locacion">Locación / Coordenadas</label>
+                    <label class="form-label" for="solicitar_locacion">Ubicación GPS</label>
                     <div class="input-wrapper">
-                        <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; color: var(--text-tertiary);">
+                        <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 14px; color: var(--text-tertiary); z-index: 5;">
                             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                             <circle cx="12" cy="10" r="3"></circle>
                         </svg>
-                        <input class="form-control" type="text" id="solicitar_locacion" name="locacion" placeholder="Ej. Sección Norte, Fila 4" style="padding-left: 42px;">
+                        <input class="form-control" type="text" id="solicitar_locacion" name="locacion" placeholder="Haz clic en obtener ubicación ➡️" required readonly style="padding-left: 42px; padding-right: 90px; background-color: var(--bg-light); cursor: pointer;" onclick="getGPSLocation()">
+                        <button type="button" onclick="getGPSLocation()" id="gps-button" style="position: absolute; right: 6px; top: 6px; bottom: 6px; border: none; background: var(--google-blue); color: white; border-radius: var(--border-radius-sm); padding: 0 12px; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: background-color 0.2s; z-index: 10;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <line x1="12" y1="1" x2="12" y2="3"></line>
+                                <line x1="12" y1="21" x2="12" y2="23"></line>
+                                <line x1="1" y1="12" x2="3" y2="12"></line>
+                                <line x1="21" y1="12" x2="23" y2="12"></line>
+                            </svg>
+                            <span>GPS</span>
+                        </button>
                     </div>
+                    <span id="gps-status" style="font-size: 10px; color: var(--text-secondary); margin-top: 4px; display: block; min-height: 14px;"></span>
                 </div>
 
                 <!-- Fecha Plantado -->
