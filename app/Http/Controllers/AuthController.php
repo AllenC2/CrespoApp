@@ -222,7 +222,7 @@ class AuthController extends Controller
         }
 
         // Fetch user's own titulares
-        $titulares = $user->titulares()->with(['arbol.bosque'])->get();
+        $titulares = $user->titulares()->with(['arbol.bosque', 'reporteMasReciente'])->get();
 
         return view('auth.profile-edit', compact('user', 'titulares'));
     }

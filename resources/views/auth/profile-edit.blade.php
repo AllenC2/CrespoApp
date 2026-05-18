@@ -335,6 +335,108 @@
             20%, 60% { transform: translateX(-4px); }
             40%, 80% { transform: translateX(4px); }
         }
+
+        /* User Trees Navigation Carousel */
+        .user-trees-carousel {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding: 4px 2px 12px 2px;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-light) transparent;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .user-trees-carousel::-webkit-scrollbar {
+            height: 5px;
+        }
+
+        .user-trees-carousel::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .user-trees-carousel::-webkit-scrollbar-thumb {
+            background-color: rgba(0, 0, 0, 0.08);
+            border-radius: 10px;
+        }
+
+        .user-tree-card {
+            flex: 0 0 130px;
+            width: 130px;
+            scroll-snap-align: start;
+            cursor: pointer;
+            border-radius: var(--border-radius-md);
+            border: 1.5px solid var(--border-card);
+            background-color: var(--bg-surface);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        }
+
+        .user-tree-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(26, 115, 232, 0.4);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.06);
+        }
+
+        .user-tree-img-wrapper {
+            width: 100%;
+            height: 80px;
+            background: linear-gradient(135deg, #e8f0fe 0%, #e6f4ea 100%);
+            position: relative;
+            overflow: hidden;
+            border-bottom: 1px solid var(--border-card);
+        }
+
+        .user-tree-img-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .user-tree-card:hover .user-tree-img-wrapper img {
+            transform: scale(1.04);
+        }
+
+        .user-tree-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--google-green);
+            background-color: var(--google-green-bg);
+        }
+
+        .user-tree-info {
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .user-tree-name {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-tree-details {
+            font-size: 9px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 500;
+        }
     </style>
 </head>
 
@@ -361,6 +463,45 @@
             <div class="page-header">
                 <h1 class="page-title">Mi Perfil</h1>
                 <p class="page-subtitle">Modifica tus datos de acceso, contraseña o actualiza tu fotografía de perfil.</p>
+            </div>
+
+            <!-- Mis Árboles Navigation Carousel -->
+            <div style="padding: 0 0 16px 0; border-bottom: 1px solid var(--border-card); margin-bottom: 8px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                    <span style="font-size: 11px; font-weight: 800; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.8px;">Mis Árboles Custodiados</span>
+                    <span style="font-size: 11px; color: var(--google-blue); font-weight: 700;">{{ $titulares->count() }} {{ $titulares->count() == 1 ? 'Árbol' : 'Árboles' }}</span>
+                </div>
+                <div class="user-trees-carousel">
+                    @foreach($titulares as $t)
+                        @if($t->arbol)
+                            @php
+                                $fotoUrl = null;
+                                if ($t->reporteMasReciente && $t->reporteMasReciente->Foto_Evidencia) {
+                                    $fotoUrl = 'data:image/jpeg;base64,' . base64_encode($t->reporteMasReciente->Foto_Evidencia);
+                                }
+                            @endphp
+                            <div class="user-tree-card" 
+                                 onclick="window.location.href='{{ route('arbol.profile', $t->arbol->Id) }}'">
+                                <div class="user-tree-img-wrapper">
+                                    @if($fotoUrl)
+                                        <img src="{{ $fotoUrl }}" alt="{{ $t->arbol->Nombre }}">
+                                    @else
+                                        <div class="user-tree-placeholder">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M12 19V5m0 0L7 9m5-4l5 4"></path>
+                                                <path d="M12 2v20M17 5H7M19 9H5M21 13H3M12 17h6M12 17H6"></path>
+                                            </svg>
+                                        </div>
+                                    @endif
+                                </div>
+                                <div class="user-tree-info">
+                                    <span class="user-tree-name">{{ $t->arbol->Nombre }}</span>
+                                    <span class="user-tree-details">{{ $t->arbol->Especie ?? 'Árbol Titular' }}</span>
+                                </div>
+                            </div>
+                        @endif
+                    @endforeach
+                </div>
             </div>
 
             <!-- Validation and Database Unique Errors List -->
